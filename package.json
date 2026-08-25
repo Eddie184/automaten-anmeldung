@@ -1,0 +1,12 @@
+{
+  "name": "season-family-registrierung",
+  "version": "1.0.0",
+  "description": "Anmeldeseite für die Automaten-Karte mit SEPA-Mandat über Stripe",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "express": "^4.19.2",
+    "stripe": "^16.2.0"
+  }
+}

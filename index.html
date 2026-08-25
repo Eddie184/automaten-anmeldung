@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automaten-Karte registrieren – Season Family</title>
+<style>
+  :root{--green:#0fa06a;--green-d:#0f5a3e;--ink:#173a2e;--muted:#5a7268;--border:#dcefe5;--bg:#f3faf6;}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  .hero{background:linear-gradient(135deg,#0fa06a 0%,#12b378 55%,#37c98f 100%);color:#fff;padding:26px 20px 30px;text-align:center}
+  .hero img{height:64px;background:#fff;border-radius:12px;padding:6px 8px;margin-bottom:14px}
+  .hero h1{font-size:24px;letter-spacing:-.02em;line-height:1.15}
+  .hero p{margin-top:8px;color:#eafaf2;font-size:15px;max-width:520px;margin-left:auto;margin-right:auto}
+  .wrap{max-width:560px;margin:-16px auto 40px;padding:0 16px}
+  .card{background:#fff;border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 30px rgba(15,90,62,.08);padding:22px}
+  .steps{display:flex;gap:8px;margin-bottom:18px;font-size:12.5px;color:var(--muted)}
+  .steps .s{flex:1;text-align:center;padding:8px 4px;border-radius:10px;background:#eaf7f0}
+  .steps .s b{display:block;color:var(--green-d);font-size:15px}
+  label{display:block;margin-bottom:14px}
+  label span{display:block;font-size:13px;font-weight:600;color:#2c4a3e;margin-bottom:5px}
+  label span .opt{color:#9fb3aa;font-weight:500}
+  input{width:100%;padding:12px 13px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:16px;background:#fff}
+  input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px #e8f6ef}
+  .row{display:flex;gap:12px}
+  .row .col{flex:1}
+  .plz{max-width:120px}
+  .note{display:flex;gap:10px;background:#eef7f2;border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:13px;color:#37554a;margin:6px 0 18px}
+  .note svg{flex:none;width:20px;height:20px;color:var(--green)}
+  button{width:100%;border:0;border-radius:12px;background:var(--green);color:#fff;font:inherit;font-weight:700;font-size:16px;padding:15px;cursor:pointer}
+  button:hover{background:var(--green-d)}
+  .foot{text-align:center;color:var(--muted);font-size:12px;margin-top:16px;line-height:1.5}
+  .req{color:#c0392b}
+</style>
+</head>
+<body>
+  <div class="hero">
+    <img src="/logo.png" alt="Season Family">
+    <h1>Automaten-Karte registrieren</h1>
+    <p>Einmal kurz anmelden – danach hältst du deine Karte einfach dran und alles läuft automatisch per SEPA-Lastschrift.</p>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="steps">
+        <div class="s"><b>1</b> Daten eingeben</div>
+        <div class="s"><b>2</b> SEPA-Mandat bei Stripe</div>
+        <div class="s"><b>3</b> Fertig</div>
+      </div>
+
+      <form action="/register" method="POST" autocomplete="on">
+        <label><span>Firma / Name <span class="req">*</span></span>
+          <input name="firma" required placeholder="z. B. Muster GmbH oder dein Name"></label>
+
+        <label><span>Ansprechpartner <span class="opt">(optional)</span></span>
+          <input name="ansprechpartner" placeholder="Vor- und Nachname"></label>
+
+        <div class="row">
+          <label class="col"><span>E-Mail <span class="req">*</span></span>
+            <input type="email" name="email" required placeholder="name@firma.de"></label>
+          <label class="col"><span>Telefon <span class="opt">(optional)</span></span>
+            <input name="telefon" placeholder="+49 …"></label>
+        </div>
+
+        <label><span>Straße & Hausnummer <span class="opt">(optional)</span></span>
+          <input name="strasse" placeholder="Beispielweg 12"></label>
+
+        <div class="row">
+          <label class="plz"><span>PLZ</span>
+            <input name="plz" inputmode="numeric" placeholder="95032"></label>
+          <label class="col"><span>Ort</span>
+            <input name="ort" placeholder="Hof"></label>
+        </div>
+
+        <label><span>NFC-Kartennummer <span class="req">*</span></span>
+          <input name="kartennummer" required placeholder="Nummer, die auf deiner Karte steht"></label>
+
+        <label><span>Arbeitgeber / Firma <span class="opt">(für einen möglichen Zuschuss)</span></span>
+          <input name="arbeitgeber" placeholder="Name deines Betriebs"></label>
+
+        <label><span>Standort / Automat <span class="opt">(optional)</span></span>
+          <input name="standort" placeholder="z. B. Empfang, Halle Nord"></label>
+
+        <div class="note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <div>Im nächsten Schritt gibst du deine <b>IBAN</b> und die SEPA-Einzugsermächtigung direkt auf der <b>sicheren Seite von Stripe</b> ein. Deine Bankdaten werden dort verschlüsselt gespeichert – nicht bei uns.</div>
+        </div>
+
+        <button type="submit">Weiter zur SEPA-Freigabe →</button>
+      </form>
+
+      <div class="foot">
+        Season Family GmbH · Luisenburgstraße 2, 95032 Hof<br>
+        Fragen? Telefon / WhatsApp: 09281 7846366
+      </div>
+    </div>
+  </div>
+</body>
+</html>
