@@ -24,9 +24,10 @@ app.post('/register', async (req, res) => {
     const firma = (b.firma || '').trim();
     const email = (b.email || '').trim();
     const kartennummer = (b.kartennummer || '').trim();
+    const arbeitgeber = (b.arbeitgeber || '').trim();
 
-    if (!firma || !email || !kartennummer) {
-      return res.status(400).send('Bitte Firma/Name, E-Mail und Kartennummer ausfüllen.');
+    if (!firma || !email || !kartennummer || !arbeitgeber) {
+      return res.status(400).send('Bitte Firma/Name, E-Mail, Kartennummer und Arbeitgeber ausfüllen.');
     }
 
     const customer = await stripe.customers.create({
@@ -42,7 +43,7 @@ app.post('/register', async (req, res) => {
       metadata: {
         ansprechpartner: (b.ansprechpartner || '').trim(),
         nfc_kartennummer: kartennummer,
-        arbeitgeber: (b.arbeitgeber || '').trim(),
+        arbeitgeber: arbeitgeber,
         standort: (b.standort || '').trim(),
         quelle: 'Automaten-Registrierung',
       },
