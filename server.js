@@ -198,5 +198,30 @@ app.get('/erfolg', async (req, res) => {
 
 app.get('/gesundheit', (_req, res) => res.send('ok'));
 
+// Diagnose: prüft NUR die K-Box-Anmeldung für eine Firma + Kartennummer (legt nichts an).
+// Beispiel: /kbox-test?firma=Sommer&nummer=4928 . Gibt keine Schlüssel preis, nur deren Länge.
+app.get('/kbox-test', async (req, res) => {
+  try {
+    const firmaKey = (req.query.firma || '').trim();
+    const kartennummer = (req.query.nummer || '').trim();
+    const firma = FIRMEN[firmaKey];
+    if (!firma) return res.json({ status: 'firma_unbekannt', firmaKey });
+    const appIdLen = (firma.appId || '').length;
+    const apiKeyLen = (firma.apiKey || '').length;
+    if (!firma.appId || !firma.apiKey) return res.json({ status: 'firma_kein_key', org: firma.org, appIdLen, apiKeyLen });
+    const map = await ladeKartenMap();
+    if (!map) return res.json({ status: 'keine_tabelle' });
+    const nfcId = map.get(String(kartennummer).trim());
+    if (!nfcId) return res.json({ status: 'nummer_unbekannt', kartennummer });
+    const headers = { 'ErpAppId': firma.appId, 'ErpApiKey': firma.apiKey };
+    const r = await fetch(`${KBOX_BASE}/customers/${encodeURIComponent(nfcId)}`, { headers });
+    const detail = await r.text().catch(() => '');
+    const status = r.ok ? 'auth_ok_karte_existiert' : (r.status === 404 ? 'auth_ok_karte_neu' : 'fehler');
+    return res.json({ status, code: r.status, detail, nfcId, org: firma.org, appIdLen, apiKeyLen });
+  } catch (e) {
+    return res.json({ status: 'exception', message: e.message });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Anmeldeseite läuft auf Port ${PORT} (BASE_URL: ${BASE_URL})`));
