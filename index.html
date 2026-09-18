@@ -20,8 +20,9 @@
   label{display:block;margin-bottom:14px}
   label span{display:block;font-size:13px;font-weight:600;color:#2c4a3e;margin-bottom:5px}
   label span .opt{color:#9fb3aa;font-weight:500}
-  input{width:100%;padding:12px 13px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:16px;background:#fff}
-  input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px #e8f6ef}
+  input,select{width:100%;padding:12px 13px;border:1px solid var(--border);border-radius:10px;font:inherit;font-size:16px;background:#fff}
+  select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%235a7268' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:34px}
+  input:focus,select:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px #e8f6ef}
   .row{display:flex;gap:12px}
   .row .col{flex:1}
   .plz{max-width:120px}
@@ -75,8 +76,15 @@
         <label><span>NFC-Kartennummer <span class="req">*</span></span>
           <input name="kartennummer" required placeholder="Nummer, die auf deiner Karte steht"></label>
 
-        <label><span>Arbeitgeber / Firma <span class="req">*</span> <span class="opt">(für einen möglichen Zuschuss)</span></span>
-          <input name="arbeitgeber" required placeholder="Name deines Betriebs"></label>
+        <label><span>Firma / Arbeitgeber <span class="req">*</span></span>
+          <select name="arbeitgeber" required>
+            <option value="" disabled selected>Bitte auswählen …</option>
+            <option value="BWF">BWF</option>
+            <option value="BAT">BAT (British American Tobacco)</option>
+            <option value="Rettenmeier">Rettenmeier</option>
+            <option value="Sommer">Sommer</option>
+            <option value="Südleder">Südleder</option>
+          </select></label>
 
         <label><span>Standort / Automat <span class="opt">(optional)</span></span>
           <input name="standort" placeholder="z. B. Empfang, Halle Nord"></label>
@@ -97,3 +105,4 @@
   </div>
 </body>
 </html>
+
