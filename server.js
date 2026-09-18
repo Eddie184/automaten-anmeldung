@@ -61,6 +61,37 @@ async function ladeKartenMap() {
   return map;
 }
 
+// Mögliche Schreibweisen, wie K-Box den API-Schlüssel im Header erwartet.
+// Die Automatik probiert sie durch und merkt sich die funktionierende.
+const KBOX_AUTH_VARIANTS = [
+  (a, k) => ({ name: 'ErpAppId/ErpApiKey',        h: { 'ErpAppId': a, 'ErpApiKey': k } }),
+  (a, k) => ({ name: 'erp-app-id/erp-api-key',    h: { 'erp-app-id': a, 'erp-api-key': k } }),
+  (a, k) => ({ name: 'x-erp-app-id/x-erp-api-key', h: { 'x-erp-app-id': a, 'x-erp-api-key': k } }),
+  (a, k) => ({ name: 'appId/apiKey',              h: { 'appId': a, 'apiKey': k } }),
+  (a, k) => ({ name: 'app-id/api-key',            h: { 'app-id': a, 'api-key': k } }),
+  (a, k) => ({ name: 'X-App-Id/X-Api-Key',        h: { 'X-App-Id': a, 'X-Api-Key': k } }),
+  (a, k) => ({ name: 'ErpAppId+Bearer',           h: { 'ErpAppId': a, 'Authorization': 'Bearer ' + k } }),
+  (a, k) => ({ name: 'Bearer(nur ApiKey)',        h: { 'Authorization': 'Bearer ' + k } }),
+];
+let authVariant = { idx: null };
+
+// Ruft K-Box auf und probiert dabei die Header-Varianten durch, bis eine nicht 401 liefert.
+async function kboxRequest(pathAndQuery, method, appId, apiKey, bodyObj) {
+  const order = authVariant.idx != null
+    ? [authVariant.idx, ...KBOX_AUTH_VARIANTS.map((_, i) => i)].filter((v, i, a) => a.indexOf(v) === i)
+    : KBOX_AUTH_VARIANTS.map((_, i) => i);
+  let last = null;
+  for (const idx of order) {
+    const v = KBOX_AUTH_VARIANTS[idx](appId, apiKey);
+    const headers = Object.assign({}, v.h);
+    if (bodyObj) headers['Content-Type'] = 'application/json';
+    const resp = await fetch(KBOX_BASE + pathAndQuery, { method, headers, body: bodyObj ? JSON.stringify(bodyObj) : undefined });
+    last = { resp, idx, variant: v.name };
+    if (resp.status !== 401) { authVariant = { idx }; return last; }
+  }
+  return last; // alle Varianten 401
+}
+
 // Legt den Kunden in K-Box an – aber nur, wenn er dort noch nicht existiert.
 async function kboxAnlegen({ kartennummer, firmaKey, name, email }) {
   const firma = FIRMEN[firmaKey];
@@ -72,22 +103,22 @@ async function kboxAnlegen({ kartennummer, firmaKey, name, email }) {
   const nfcId = map.get(String(kartennummer || '').trim());
   if (!nfcId) return { status: 'nummer_unbekannt', kartennummer };
 
-  const headers = { 'ErpAppId': firma.appId, 'ErpApiKey': firma.apiKey, 'Content-Type': 'application/json' };
-
   // 1) Existiert die Karte schon? -> Bestandskunde, nichts anlegen.
-  const check = await fetch(`${KBOX_BASE}/customers/${encodeURIComponent(nfcId)}`, { headers });
-  if (check.ok) return { status: 'bestandskunde', nfcId, org: firma.org };
-  if (check.status !== 404) {
-    const detail = await check.text().catch(() => '');
-    return { status: 'fehler_pruefung', code: check.status, detail, nfcId, org: firma.org };
+  const check = await kboxRequest(`/customers/${encodeURIComponent(nfcId)}`, 'GET', firma.appId, firma.apiKey);
+  if (check.resp.status === 401) {
+    return { status: 'fehler_auth', code: 401, detail: 'alle Header-Varianten abgelehnt', nfcId, org: firma.org };
+  }
+  if (check.resp.ok) return { status: 'bestandskunde', nfcId, org: firma.org, variant: check.variant };
+  if (check.resp.status !== 404) {
+    const detail = await check.resp.text().catch(() => '');
+    return { status: 'fehler_pruefung', code: check.resp.status, detail, nfcId, org: firma.org };
   }
 
   // 2) Neukunde -> anlegen.
-  const body = JSON.stringify({ nfcId: nfcId, name: name, mail: email });
-  const create = await fetch(`${KBOX_BASE}/customers`, { method: 'POST', headers, body });
-  if (create.ok) return { status: 'neu_angelegt', nfcId, org: firma.org };
-  const detail = await create.text().catch(() => '');
-  return { status: 'fehler_anlegen', code: create.status, detail, nfcId, org: firma.org };
+  const create = await kboxRequest('/customers', 'POST', firma.appId, firma.apiKey, { nfcId: nfcId, name: name, mail: email });
+  if (create.resp.ok) return { status: 'neu_angelegt', nfcId, org: firma.org, variant: create.variant };
+  const detail = await create.resp.text().catch(() => '');
+  return { status: 'fehler_anlegen', code: create.resp.status, detail, nfcId, org: firma.org };
 }
 
 // ---------------------------------------------------------------------------
@@ -198,8 +229,8 @@ app.get('/erfolg', async (req, res) => {
 
 app.get('/gesundheit', (_req, res) => res.send('ok'));
 
-// Diagnose: prüft NUR die K-Box-Anmeldung für eine Firma + Kartennummer (legt nichts an).
-// Beispiel: /kbox-test?firma=Sommer&nummer=4928 . Gibt keine Schlüssel preis, nur deren Länge.
+// Diagnose: probiert ALLE Header-Varianten für eine Firma + Kartennummer (nur Lesen, legt nichts an).
+// Beispiel: /kbox-test?firma=Sommer&nummer=4928 . Gibt keine Schlüssel preis, nur deren Länge + je Variante den HTTP-Code.
 app.get('/kbox-test', async (req, res) => {
   try {
     const firmaKey = (req.query.firma || '').trim();
@@ -213,11 +244,18 @@ app.get('/kbox-test', async (req, res) => {
     if (!map) return res.json({ status: 'keine_tabelle' });
     const nfcId = map.get(String(kartennummer).trim());
     if (!nfcId) return res.json({ status: 'nummer_unbekannt', kartennummer });
-    const headers = { 'ErpAppId': firma.appId, 'ErpApiKey': firma.apiKey };
-    const r = await fetch(`${KBOX_BASE}/customers/${encodeURIComponent(nfcId)}`, { headers });
-    const detail = await r.text().catch(() => '');
-    const status = r.ok ? 'auth_ok_karte_existiert' : (r.status === 404 ? 'auth_ok_karte_neu' : 'fehler');
-    return res.json({ status, code: r.status, detail, nfcId, org: firma.org, appIdLen, apiKeyLen });
+    const results = [];
+    for (const build of KBOX_AUTH_VARIANTS) {
+      const v = build(firma.appId, firma.apiKey);
+      let code, detail = '';
+      try {
+        const r = await fetch(`${KBOX_BASE}/customers/${encodeURIComponent(nfcId)}`, { headers: v.h });
+        code = r.status;
+        detail = (await r.text().catch(() => '')).slice(0, 150);
+      } catch (e) { code = 'ERR'; detail = e.message; }
+      results.push({ variant: v.name, code, detail });
+    }
+    return res.json({ nfcId, org: firma.org, appIdLen, apiKeyLen, results });
   } catch (e) {
     return res.json({ status: 'exception', message: e.message });
   }
